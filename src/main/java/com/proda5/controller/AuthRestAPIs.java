@@ -28,11 +28,13 @@ import org.springframework.web.multipart.MultipartFile;
 
 
 import com.proda5.message.request.LoginForm;
-import com.proda5.message.request.SignUpForm;
+import com.proda5.message.request.UserRequest;
+import com.proda5.model.UserAccount;
 import com.proda5.model.Role;
 import com.proda5.model.RoleName;
 import com.proda5.model.User;
 import com.proda5.repository.RoleRepository;
+import com.proda5.repository.UserAccountRepository;
 import com.proda5.repository.UserRepository;
 import com.proda5.security.jwt.JwtProvider;
 
@@ -55,6 +57,9 @@ public class AuthRestAPIs {
 
 	@Autowired
 	JwtProvider jwtProvider;
+	
+	@Autowired
+	UserAccountRepository userAccountRepository;
 
 
 	
@@ -72,71 +77,17 @@ public class AuthRestAPIs {
 		return ResponseEntity.ok(jwtProvider.generateJwtToken(authentication));
 	}
 
-	@PostMapping("/signup_patient")
-	public ResponseEntity<String> registerPatient(@RequestBody SignUpForm signUpRequest) {
+
+	@PostMapping("/signup")
+	public ResponseEntity<String> registerDoctor(@RequestBody UserRequest signUpRequest) {
 		if (userRepository.existsByPhonenumber(signUpRequest.getPhonenumber())) {
 			return new ResponseEntity<String>("Fail -> Phone Number is already taken!", HttpStatus.BAD_REQUEST);
 		}
 
-		if (userRepository.existsByEmail(signUpRequest.getEmail())) {
-			return new ResponseEntity<String>("Fail -> Email is already in use!", HttpStatus.BAD_REQUEST);
-		}
-
-		// Creating user's account
-		User user = new User(signUpRequest.getName(), signUpRequest.getPhonenumber(), signUpRequest.getEmail(),
-				encoder.encode(signUpRequest.getPassword()));
-
-		Set<String> strRoles = signUpRequest.getRole();
-		Set<Role> roles = new HashSet<>();
-		strRoles.forEach(role -> {
-			switch (role) {
-			case "doctor":
-				Role doctorRole = roleRepository.findByName(RoleName.ROLE_DOCTOR)
-						.orElseThrow(() -> new RuntimeException("Fail! -> Cause: User Role not find."));
-				roles.add(doctorRole);
-
-				break;
-			case "patient":
-				Role userRole = roleRepository.findByName(RoleName.ROLE_PATIENT)
-						.orElseThrow(() -> new RuntimeException("Fail! -> Cause: User Role not find."));
-				roles.add(userRole);
-			}
-		});
-
-		String name = singleImageUpload(file);
-
-//        String uri = ServletUriComponentsBuilder.fromCurrentContextPath()
-//                .path("/download/")
-//                .path("hrllo")
-//                .toUriString();
-//        
-
-		user.setRoles(roles);
-		userRepository.save(user);
-
-		Patient patient = new Patient(signUpRequest.getPhonenumber(), signUpRequest.getEmail(), user.getPassword(),
-				signUpRequest.getWeight(), signUpRequest.getName(), signUpRequest.getBloodgroup(),
-				signUpRequest.getGender(), signUpRequest.getAddress(), signUpRequest.getAge(), name);
 		
 
-		patientRepository.save(patient);
-
-		return ResponseEntity.ok().body("Patient registered successfully!");
-	}
-
-	@PostMapping("/signup_doctor")
-	public ResponseEntity<String> registerDoctor(@RequestPart("file") MultipartFile file,
-			@RequestPart("doctor") SignUpFormDoctor signUpRequest) {
-		if (userRepository.existsByPhonenumber(signUpRequest.getPhonenumber())) {
-			return new ResponseEntity<String>("Fail -> Phone Number is already taken!", HttpStatus.BAD_REQUEST);
-		}
-
-		if (userRepository.existsByEmail(signUpRequest.getEmail())) {
-			return new ResponseEntity<String>("Fail -> Email is already in use!", HttpStatus.BAD_REQUEST);
-		}
-
 		// Creating user's account
-		User user = new User(signUpRequest.getName(), signUpRequest.getPhonenumber(), signUpRequest.getEmail(),
+		User user = new User(signUpRequest.getName(), signUpRequest.getPhonenumber(),signUpRequest.getEmail(), 
 				encoder.encode(signUpRequest.getPassword()));
 
 		Set<String> strRoles = signUpRequest.getRole();
@@ -144,14 +95,14 @@ public class AuthRestAPIs {
 
 		strRoles.forEach(role -> {
 			switch (role) {
-			case "doctor":
-				Role doctorRole = roleRepository.findByName(RoleName.ROLE_DOCTOR)
+			case "admin":
+				Role doctorRole = roleRepository.findByName(RoleName.ROLE_ADMIN)
 						.orElseThrow(() -> new RuntimeException("Fail! -> Cause: User Role not find."));
 				roles.add(doctorRole);
 
 				break;
-			case "patient":
-				Role userRole = roleRepository.findByName(RoleName.ROLE_PATIENT)
+			case "shopowner":
+				Role userRole = roleRepository.findByName(RoleName.ROLE_SHOPOWNER)
 						.orElseThrow(() -> new RuntimeException("Fail! -> Cause: User Role not find."));
 				roles.add(userRole);
 			}
@@ -159,37 +110,32 @@ public class AuthRestAPIs {
 		
 		//////////// ================= Image Save ====================///////////////
 		
-		String name = singleImageUpload(file);
-
 		
 		
 		user.setRoles(roles);
 		userRepository.save(user);
 
-		Doctor doctor = new Doctor(signUpRequest.getPhonenumber(), signUpRequest.getEmail(), user.getPassword(),
-				signUpRequest.getName(), signUpRequest.getFee(), signUpRequest.getLocation(),
-				signUpRequest.getNumber_of_patient(), signUpRequest.getVisiting_hour(), signUpRequest.getDegree(),
-				signUpRequest.getDepartment(),name);
+		 UserAccount userA = new UserAccount(signUpRequest.getName(),signUpRequest.getPhonenumber(),signUpRequest.getEmail(),signUpRequest.getShopname(),signUpRequest.getType(),signUpRequest.getStatus());
 
-		doctorRepository.save(doctor);
-		return ResponseEntity.ok().body("Doctor registered successfully!");
+		userAccountRepository.save(userA);
+		return ResponseEntity.ok().body("User registered successfully!");
 	}
 
 	
 	
 ///////////////////// =============   Cloudinary Image Upload Testing   ==================   ////////////////////////
-	public String singleImageUpload( MultipartFile file) {
-		Map uploadResult = null;
-		if (file.isEmpty()) {
-			return "NO FILE";
-		}
-		try {
-			uploadResult = cloudc.upload(file.getBytes(), ObjectUtils.asMap("resourcetype", "auto"));
-		} catch (IOException e) {
-			e.printStackTrace();
-
-		}
-		return (String) uploadResult.get("url");
-	}
+//	public String singleImageUpload( MultipartFile file) {
+//		Map uploadResult = null;
+//		if (file.isEmpty()) {
+//			return "NO FILE";
+//		}
+//		try {
+//			uploadResult = cloudc.upload(file.getBytes(), ObjectUtils.asMap("resourcetype", "auto"));
+//		} catch (IOException e) {
+//			e.printStackTrace();
+//
+//		}
+//		return (String) uploadResult.get("url");
+//	}
 
 }
