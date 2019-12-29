@@ -121,21 +121,4 @@ public class AuthRestAPIs {
 		return ResponseEntity.ok().body("User registered successfully!");
 	}
 
-	
-	
-///////////////////// =============   Cloudinary Image Upload Testing   ==================   ////////////////////////
-//	public String singleImageUpload( MultipartFile file) {
-//		Map uploadResult = null;
-//		if (file.isEmpty()) {
-//			return "NO FILE";
-//		}
-//		try {
-//			uploadResult = cloudc.upload(file.getBytes(), ObjectUtils.asMap("resourcetype", "auto"));
-//		} catch (IOException e) {
-//			e.printStackTrace();
-//
-//		}
-//		return (String) uploadResult.get("url");
-//	}
-
 }
